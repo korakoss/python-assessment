@@ -1,7 +1,13 @@
 import unittest
 from pptx import Presentation
-from pptx_maker import readDataFile, addTitleSlide, addTextSlide, addListSlide, addImgSlide, addPlotSlide
+from pptx_maker import readDataFile, addTitleSlide, addTextSlide, addListSlide, addImgSlide, addPlotSlide, makePresentation
 import json
+
+
+#TODO logging
+#TODO rest of exception handling
+#TODO commenting if needed
+#TODO implement the user input stuff
 
 class TestPptxMaker(unittest.TestCase):
     def test_readDataFile(self):
@@ -54,7 +60,7 @@ class TestPptxMaker(unittest.TestCase):
 
     def test_AddImgSlide(self):  #the result of the tested function can be evaluated visually
         presentation = Presentation()
-        addImgSlide(presentation, "Title", "test.png")
+        addImgSlide(presentation, "Title", "picture.png")
         slides = presentation.slides
         self.assertEqual(len(slides),1)
         slide = slides[0]  
@@ -63,9 +69,9 @@ class TestPptxMaker(unittest.TestCase):
         self.assertEqual(title, "Title")
         presentation.save("img_test_pres.pptx")
 
-    def test_AddPlotSlide(self):
+    def test_AddPlotSlide(self): #the result of this function is also to be evaluated visually
         presentation = Presentation()
-        addPlotSlide(presentation, "Title", "data.dat", "xlabel", "ylabel")
+        addPlotSlide(presentation, "Title", "sample.dat", "xlabel", "ylabel")
         slides = presentation.slides
         self.assertEqual(len(slides),1)
         slide = slides[0]  
@@ -74,6 +80,11 @@ class TestPptxMaker(unittest.TestCase):
         self.assertEqual(title, "Title")
         presentation.save("plot_test_pres.pptx")
 
+    def test_MakePresentation(self): #another visual test
+        presentation_data = json.load(open("sample.json"))
+        presentation = makePresentation(presentation_data)
+        presentation.save("total_test_pres.pptx")
+        
 
 if __name__ == "__main__":
     unittest.main()

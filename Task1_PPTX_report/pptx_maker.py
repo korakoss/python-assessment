@@ -42,7 +42,7 @@ def addImgSlide(presentation, title_text, img_path):  #TODO do alignment correct
     content = slide.placeholders[1]
     title.text = title_text
     content.text = ""
-    slide.shapes.add_picture(img_path, Inches(1), Inches(1))
+    slide.shapes.add_picture(img_path, Inches(1), Inches(2))
 
 def readDataFile(filepath):  #TODO better exception handling. #Reads the data for plot slides. I assumed that the data consists of pairs of numbers in each line, separated by semicolons, as in the example
     data = []
@@ -73,7 +73,7 @@ def createPlotImage(datapoints, x_label, y_label):  #TODO order the points so th
 
 def addChartToPlotSlide(slide, datapoints, x_label, y_label):
     image_path = createPlotImage(datapoints, x_label, y_label)
-    slide.shapes.add_picture(image_path, Inches(1), Inches(1), Inches(6), Inches(4))
+    slide.shapes.add_picture(image_path, Inches(1), Inches(2))
 
 def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
     slide_layout = presentation.slide_layouts[1]
@@ -83,5 +83,31 @@ def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
     title.text = title_text
     content.text = ""
     datapoints = readDataFile(data_path)            
-    addChartToPlotSlide(slide, datapoints, x_label, y_label)  
+    addChartToPlotSlide(slide, datapoints, x_label, y_label)
+
+def makePresentation(json_data):
+    presentation = Presentation()
+    for slide_data in json_data["presentation"]:
+        slide_type = slide_data["type"]
+        slide_title = slide_data["title"]
+        slide_content = slide_data["content"]
+
+        if slide_type == "title":
+            addTitleSlide(presentation, slide_title, slide_content)
+        elif slide_type == "text":
+            addTextSlide(presentation, slide_title, slide_content)
+            
+        elif slide_type == "list":
+            addListSlide(presentation, slide_title, slide_content)
+                
+        elif slide_type == "picture":
+            addImgSlide(presentation, slide_title, slide_content)
+
+        elif slide_type == "plot":
+            slide_config = slide_data["configuration"]
+            x_label = slide_config["x-label"]
+            y_label = slide_config["y-label"]
+            addPlotSlide(presentation, slide_title, slide_content, x_label, y_label)
+
+    return presentation
 
