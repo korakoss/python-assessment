@@ -1,6 +1,48 @@
 from pptx import Presentation
 from pptx.util import Inches
 import json
+from pptx.chart.data import XySeriesData, XyChartData
+from pptx.enum.chart import XL_CHART_TYPE
+import matplotlib.pyplot as plt
+import tempfile
+
+
+def addTitleSlide(presentation, title_text, subtitle_text):
+    slide_layout = presentation.slide_layouts[0]  
+    slide = presentation.slides.add_slide(slide_layout)
+    title = slide.shapes.title
+    subtitle = slide.placeholders[1]
+    title.text = title_text
+    subtitle.text = subtitle_text
+
+def addTextSlide(presentation, title_text, text):
+    slide_layout = presentation.slide_layouts[1]
+    slide = presentation.slides.add_slide(slide_layout)
+    title = slide.shapes.title
+    body = slide.placeholders[1]
+    title.text = title_text
+    body.text = text
+
+def addListSlide(presentation, title_text, list_json):
+    slide_layout = presentation.slide_layouts[1]
+    slide = presentation.slides.add_slide(slide_layout)
+    title = slide.shapes.title
+    body = slide.placeholders[1]
+    title.text = title_text
+    body.text = ""
+    for item in list_json:
+        level = item["level"]
+        text = item["text"]
+        body.text += f"\n{' ' * (4 * (level - 1))}• {text}"
+
+def addImgSlide(presentation, title_text, img_path):  #TODO do alignment correctly, the img is covering the title
+    slide_layout = presentation.slide_layouts[1]  
+    slide = presentation.slides.add_slide(slide_layout)
+    title = slide.shapes.title
+    content = slide.placeholders[1]
+    title.text = title_text
+    content.text = ""
+    slide.shapes.add_picture(img_path, Inches(1), Inches(1))
 
 def readDataFile(filepath):  #TODO better exception handling. #Reads the data for plot slides. I assumed that the data consists of pairs of numbers in each line, separated by semicolons, as in the example
     data = []
@@ -19,40 +61,27 @@ def readDataFile(filepath):  #TODO better exception handling. #Reads the data fo
                 #else raise something maybe?
     return data
 
-def addTitleSlide(presentation, title_text, subtitle_text):
-        slide_layout = presentation.slide_layouts[0]  
-        slide = presentation.slides.add_slide(slide_layout)
-        title = slide.shapes.title
-        subtitle = slide.placeholders[1]
-        title.text = title_text
-        subtitle.text = subtitle_text
+def createPlotImage(datapoints, x_label, y_label):  #TODO order the points so they are connected in the right order
+    plt.figure(figsize=(6,4))
+    plt.plot([x for x, y in datapoints], [y for x, y in datapoints], marker='o') 
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    img_path = 'temp_plot.png'
+    plt.savefig(img_path)
+    plt.close()
+    return img_path
 
-def addTextSlide(presentation, title_text, text):
-        slide_layout = presentation.slide_layouts[1]
-        slide = presentation.slides.add_slide(slide_layout)
-        title = slide.shapes.title
-        body = slide.placeholders[1]
-        title.text = title_text
-        body.text = text
+def addChartToPlotSlide(slide, datapoints, x_label, y_label):
+    image_path = createPlotImage(datapoints, x_label, y_label)
+    slide.shapes.add_picture(image_path, Inches(1), Inches(1), Inches(6), Inches(4))
 
-def addListSlide(presentation, title_text, list_json):
-        slide_layout = presentation.slide_layouts[1]  
-        slide = presentation.slides.add_slide(slide_layout)
-        title = slide.shapes.title
-        body = slide.placeholders[1]
-        title.text = title_text
-        body.text = ""
-        for item in list_json:
-            level = item["level"]
-            text = item["text"]
-            body.text += f"\n{' ' * (4 * (level - 1))}• {text}"
-
-def addImgSlide(presentation, title_text, img_path):  #TODO do alignment correctly, the img is covering the title
-        slide_layout = presentation.slide_layouts[1]  
-        slide = presentation.slides.add_slide(slide_layout)
-        title = slide.shapes.title
-        content = slide.placeholders[1]
-        title.text = title_text
-        content.text = ""
-        slide.shapes.add_picture(img_path, Inches(1), Inches(1))
+def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
+    slide_layout = presentation.slide_layouts[1]
+    slide = presentation.slides.add_slide(slide_layout)
+    title = slide.shapes.title
+    content = slide.placeholders[1]
+    title.text = title_text
+    content.text = ""
+    datapoints = readDataFile(data_path)            
+    addChartToPlotSlide(slide, datapoints, x_label, y_label)  
 

@@ -1,6 +1,6 @@
 import unittest
 from pptx import Presentation
-from pptx_maker import readDataFile, addTitleSlide, addTextSlide, addListSlide, addImgSlide
+from pptx_maker import readDataFile, addTitleSlide, addTextSlide, addListSlide, addImgSlide, addPlotSlide
 import json
 
 class TestPptxMaker(unittest.TestCase):
@@ -52,7 +52,7 @@ class TestPptxMaker(unittest.TestCase):
         self.assertEqual(title, "Title")
         print(content)
 
-    def test_AddImgSlide(self):
+    def test_AddImgSlide(self):  #the result of the tested function can be evaluated visually
         presentation = Presentation()
         addImgSlide(presentation, "Title", "test.png")
         slides = presentation.slides
@@ -62,6 +62,18 @@ class TestPptxMaker(unittest.TestCase):
         content = slide.placeholders[1].text
         self.assertEqual(title, "Title")
         presentation.save("img_test_pres.pptx")
-        
+
+    def test_AddPlotSlide(self):
+        presentation = Presentation()
+        addPlotSlide(presentation, "Title", "data.dat", "xlabel", "ylabel")
+        slides = presentation.slides
+        self.assertEqual(len(slides),1)
+        slide = slides[0]  
+        title = slide.shapes.title.text
+        content = slide.placeholders[1].text
+        self.assertEqual(title, "Title")
+        presentation.save("plot_test_pres.pptx")
+
+
 if __name__ == "__main__":
     unittest.main()
