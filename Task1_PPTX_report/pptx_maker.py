@@ -1,0 +1,58 @@
+from pptx import Presentation
+from pptx.util import Inches
+import json
+
+def readDataFile(filepath):  #TODO better exception handling. #Reads the data for plot slides. I assumed that the data consists of pairs of numbers in each line, separated by semicolons, as in the example
+    data = []
+    with open(filepath, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if line:
+                values = line.split(';')
+                if len(values) == 2:
+                    try:
+                        value1 = float(values[0])
+                        value2 = float(values[1])
+                        data.append((value1, value2))
+                    except ValueError:
+                        print(f"Warning: Ignoring line '{line}'. Invalid float values.")
+                #else raise something maybe?
+    return data
+
+def addTitleSlide(presentation, title_text, subtitle_text):
+        slide_layout = presentation.slide_layouts[0]  
+        slide = presentation.slides.add_slide(slide_layout)
+        title = slide.shapes.title
+        subtitle = slide.placeholders[1]
+        title.text = title_text
+        subtitle.text = subtitle_text
+
+def addTextSlide(presentation, title_text, text):
+        slide_layout = presentation.slide_layouts[1]
+        slide = presentation.slides.add_slide(slide_layout)
+        title = slide.shapes.title
+        body = slide.placeholders[1]
+        title.text = title_text
+        body.text = text
+
+def addListSlide(presentation, title_text, list_json):
+        slide_layout = presentation.slide_layouts[1]  
+        slide = presentation.slides.add_slide(slide_layout)
+        title = slide.shapes.title
+        body = slide.placeholders[1]
+        title.text = title_text
+        body.text = ""
+        for item in list_json:
+            level = item["level"]
+            text = item["text"]
+            body.text += f"\n{' ' * (4 * (level - 1))}• {text}"
+
+def addImgSlide(presentation, title_text, img_path):  #TODO do alignment correctly, the img is covering the title
+        slide_layout = presentation.slide_layouts[1]  
+        slide = presentation.slides.add_slide(slide_layout)
+        title = slide.shapes.title
+        content = slide.placeholders[1]
+        title.text = title_text
+        content.text = ""
+        slide.shapes.add_picture(img_path, Inches(1), Inches(1))
+

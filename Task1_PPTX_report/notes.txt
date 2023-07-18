@@ -1,0 +1,1 @@
+I have assumed that the .dat files, as in the example, contain float pairs separated by semicolons, and that I shall create a line plot fitted onto the (x,y) points given by these pairs. 
