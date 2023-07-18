@@ -111,3 +111,33 @@ def makePresentation(json_data):
 
     return presentation
 
+#main part of program
+print("This program makes presentations from .json files.")
+print("You will be asked to provide the .json file to be summarized as a presentation.")
+print("Make sure that the .json file and other relevant files are in the program library.")
+
+while True:
+    json_inp = input("Enter the filename of the JSON file (without the .json extension): ")
+    filename = json_inp + ".json"
+    try:
+        with open(filename, 'r') as file:
+            presentation_data = json.load(file)
+    except FileNotFoundError:
+        print(f"File '{filename}' not found. Please enter a valid filename. \n")
+    
+    except json.JSONDecodeError as e:
+        print("There was an issue interpreting your JSON file. Make sure the file is valid.")
+
+    try:
+        json_pres = JSONPresentation(presentation_data)
+        presentation = JSONPresentation.getPresentation()
+        print("Your JSON file has been successfully converted.")
+        ppt_inp = input("Please enter a filename for the .pptx file to be created from your JSON file: ")
+        output_filename = ppt_inp + ".pptx"
+        presentation.save(output_filename)
+        input(f"Your file has been saved into the file {ouput_filename}. Enter anything to exit the program.")
+        break
+
+    except FileNotFoundError:
+        print("Some source files were not found") # TODO: MAKE THIS BETTER. WHAT FILE EXACTLY?
+
