@@ -1,14 +1,16 @@
 from pptx import Presentation
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 import json
 from pptx.chart.data import XySeriesData, XyChartData
 from pptx.enum.chart import XL_CHART_TYPE
 import matplotlib.pyplot as plt
 import tempfile
-import logging 
-#TODO logging
+import logging
+
+#TODO empty boxes on result. normal?
 #TODO rest of exception handling
 #TODO commenting if needed
+#TODO handle better when datafile not formatted correctly
 
 def addTitleSlide(presentation, title_text, subtitle_text):
     slide_layout = presentation.slide_layouts[0]  
@@ -26,19 +28,22 @@ def addTextSlide(presentation, title_text, text):
     title.text = title_text
     body.text = text
 
-def addListSlide(presentation, title_text, list_json):
+def addListSlide(presentation, title_text, list_json): #raise errors if needed (eg wrong level numbers etc
     slide_layout = presentation.slide_layouts[1]
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
-    body = slide.placeholders[1]
     title.text = title_text
-    body.text = ""
+    content = slide.placeholders[1]
+    content.text = ""
     for item in list_json:
         level = item["level"]
         text = item["text"]
-        body.text += f"\n{' ' * (4 * (level - 1))}• {text}"
+        p = content.text_frame.add_paragraph()
+        p.text = text
+        p.level = level - 1 
 
-def addImgSlide(presentation, title_text, img_path):  #TODO do alignment correctly, the img is covering the title
+        
+def addImgSlide(presentation, title_text, img_path):
     slide_layout = presentation.slide_layouts[1]  
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -60,12 +65,13 @@ def readDataFile(filepath):  #TODO better exception handling. #Reads the data fo
                         value2 = float(values[1])
                         data.append((value1, value2))
                     except ValueError:
-                        print(f"Warning: Ignoring line '{line}'. Invalid float values.")
+                        print(f"Warning: Problem with line {line} in data file {filepath}.")
                 #else raise something maybe?
     return data
 
-def createPlotImage(datapoints, x_label, y_label):  #TODO order the points so they are connected in the right order
+def createPlotImage(datapoints, x_label, y_label):  #creates a matplotlib line plot and saves it as an image, returns its filepath
     plt.figure(figsize=(6,4))
+    datapoints.sort()
     plt.plot([x for x, y in datapoints], [y for x, y in datapoints], marker='o') 
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -115,7 +121,7 @@ def makePresentation(json_data):
     return presentation
 
 #MAIN PART OF PROGRAM
-logging.basicConfig(filename='pptx_maker.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(filename='pptx_maker.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 print("This program makes presentations from JSON files.")
 print("You will be asked to provide the JSON file to be summarized as a presentation.")
 print("Make sure that the JSON file and other relevant files are in the program library.")
@@ -123,30 +129,43 @@ print("Make sure that the JSON file and other relevant files are in the program 
 while True:
     json_inp = input("Enter the filename of the JSON file (without the .json extension): ")
     filename = json_inp + ".json"
-    logging.info(f"Attempting to read '{filename}'.json")
+    logging.info(f"Attempting to read {filename}.")
     try:
         with open(filename, 'r') as file:
             presentation_data = json.load(file)
     except FileNotFoundError:
-        print(f"File '{filename}' not found. Please enter a valid filename. \n")
-        logging.error("File '{filename}'.json not found.")
+        print(f"File {filename} not found. Please enter a valid filename. \n")
+        logging.error(f"File {filename} not found.")
     
     except json.JSONDecodeError as e:
-        print("There was an issue interpreting your JSON file. Make sure the file is valid.")
-        logging.error("JSON decoding error with '{filename}'.json.")
+        print(f"There was an issue interpreting your JSON file. Make sure the file is valid.")
+        logging.error(f"JSON decoding error with {filename}.")
 
     try:
-        json_pres = JSONPresentation(presentation_data)
-        presentation = JSONPresentation.getPresentation()
-        print("Your JSON file has been successfully converted.")
-        ppt_inp = input("Please enter a filename for the .pptx file to be created from your JSON file: ")
+        presentation = makePresentation(presentation_data)        
+
+    except FileNotFoundError as e:
+        missing_file = e.filename
+        print(f"The input file {missing_file} mentioned in your JSON source file was not found.")
+        logging.error(f"Source file {missing_file} not found.")
+
+    except ValueError:
+        print("There was an issue, likely when interpreting the plot data. Make sure the data is in the correct format.")
+        logging.error("Value error encountered.")
+    
+
+    print("Your JSON file has been successfully converted.")
+    
+    try:
+        ppt_inp = input(f"Please enter a filename for the .pptx file to be created from your JSON file: ")
         output_filename = ppt_inp + ".pptx"
         presentation.save(output_filename)
-        logging.info("JSON input file '{filename}'.json succesfully converted, resulting presentation saved to '{output_filename}'.pptx.")
-        input(f"The presentation has been saved into the file {ouput_filename}.pptx. Enter anything to exit the program.")
+        logging.info(f"JSON input file {filename} succesfully converted, resulting presentation saved to {output_filename}.")
+        input(f"The presentation has been saved into the file {output_filename}. Enter anything to exit the program.")
         break
+    
+    except PermissionError:
+        print(f"There was a permission error when trying to save the presentation. Make sure you have write access to the directory.")
+        logging.error(f"Permission error when trying to save the presentation to {output_filename}.")
 
-    except FileNotFoundError: # TODO: MAKE THIS BETTER. WHAT FILE EXACTLY?
-        print("Some source files were not found")
-        logging.error("Source files not found.")
 
