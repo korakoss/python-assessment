@@ -5,14 +5,16 @@ from pptx.chart.data import XySeriesData, XyChartData
 from pptx.enum.chart import XL_CHART_TYPE
 import matplotlib.pyplot as plt
 import tempfile
+import os
 import logging
 
-#TODO empty boxes on result. normal?
 #TODO rest of exception handling
 #TODO commenting if needed
 #TODO handle better when datafile not formatted correctly
 
 def addTitleSlide(presentation, title_text, subtitle_text):
+    '''Each of the addSomeSlide functions require a presentation arg and some other args depending on slide type.
+    The fuctions add a slide to the presentation provided in the first argument. The contents of the slide are determined by the other args'''
     slide_layout = presentation.slide_layouts[0]  
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -28,7 +30,7 @@ def addTextSlide(presentation, title_text, text):
     title.text = title_text
     body.text = text
 
-def addListSlide(presentation, title_text, list_json): #raise errors if needed (eg wrong level numbers etc
+def addListSlide(presentation, title_text, list_json): #TODO: raise errors if needed (eg wrong level numbers etc
     slide_layout = presentation.slide_layouts[1]
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -44,12 +46,10 @@ def addListSlide(presentation, title_text, list_json): #raise errors if needed (
 
         
 def addImgSlide(presentation, title_text, img_path):
-    slide_layout = presentation.slide_layouts[1]  
+    slide_layout = presentation.slide_layouts[5] #choosing a "title only" layout to not have a textbox on the slide  
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
-    content = slide.placeholders[1]
     title.text = title_text
-    content.text = ""
     slide.shapes.add_picture(img_path, Inches(1), Inches(2))
 
 def readDataFile(filepath):  #TODO better exception handling. #Reads the data for plot slides. I assumed that the data consists of pairs of numbers in each line, separated by semicolons, as in the example
@@ -75,22 +75,21 @@ def createPlotImage(datapoints, x_label, y_label):  #creates a matplotlib line p
     plt.plot([x for x, y in datapoints], [y for x, y in datapoints], marker='o') 
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    img_path = 'temp_plot.png'
-    plt.savefig(img_path)
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+    plt.savefig(temp_file.name)
     plt.close()
-    return img_path
+    return temp_file.name
 
 def addChartToPlotSlide(slide, datapoints, x_label, y_label):
     image_path = createPlotImage(datapoints, x_label, y_label)
     slide.shapes.add_picture(image_path, Inches(1), Inches(2))
+    os.remove(image_path)
 
 def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
-    slide_layout = presentation.slide_layouts[1]
+    slide_layout = presentation.slide_layouts[5] #"title only" layout to avoid adding an empty textbox by defaul
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
-    content = slide.placeholders[1]
     title.text = title_text
-    content.text = ""
     datapoints = readDataFile(data_path)            
     addChartToPlotSlide(slide, datapoints, x_label, y_label)
 

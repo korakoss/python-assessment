@@ -3,13 +3,10 @@ from pptx import Presentation
 from pptx_maker import readDataFile, addTitleSlide, addTextSlide, addListSlide, addImgSlide, addPlotSlide, makePresentation
 import json
 
-
-#TODO logging
-#TODO rest of exception handling
-#TODO commenting if needed
-#TODO implement the user input stuff
+#TODO do file handling better as per the warning
 
 class TestPptxMaker(unittest.TestCase):
+    
     def test_readDataFile(self):
         data = [
             (1.0, 2.0),
@@ -65,7 +62,6 @@ class TestPptxMaker(unittest.TestCase):
         self.assertEqual(len(slides),1)
         slide = slides[0]  
         title = slide.shapes.title.text
-        content = slide.placeholders[1].text
         self.assertEqual(title, "Title")
         presentation.save("img_test_pres.pptx")
 
@@ -76,7 +72,6 @@ class TestPptxMaker(unittest.TestCase):
         self.assertEqual(len(slides),1)
         slide = slides[0]  
         title = slide.shapes.title.text
-        content = slide.placeholders[1].text
         self.assertEqual(title, "Title")
         presentation.save("plot_test_pres.pptx")
 
