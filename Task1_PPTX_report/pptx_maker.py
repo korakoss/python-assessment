@@ -9,8 +9,13 @@ import os
 import logging
 
 #TODO rest of exception handling
+#TODO test exception handling
 #TODO commenting if needed
 #TODO handle better when datafile not formatted correctly
+
+class ListSlideError(Exception):
+    pass
+
 
 def addTitleSlide(presentation, title_text, subtitle_text):
     '''Each of the addSomeSlide functions require a presentation arg and some other args depending on slide type.
@@ -39,6 +44,8 @@ def addListSlide(presentation, title_text, list_json): #TODO: raise errors if ne
     content.text = ""
     for item in list_json:
         level = item["level"]
+        if not level>0:
+            raise ListSlideError("Invalid 'level' attribute in JSON entry " + item)
         text = item["text"]
         p = content.text_frame.add_paragraph()
         p.text = text
@@ -65,8 +72,9 @@ def readDataFile(filepath):  #TODO better exception handling. #Reads the data fo
                         value2 = float(values[1])
                         data.append((value1, value2))
                     except ValueError:
-                        print(f"Warning: Problem with line {line} in data file {filepath}.")
-                #else raise something maybe?
+                        raise ValueError(f"Warning: Problem with line {line} in data file {filepath}.")
+                else:
+                    raise ValueError(f"Line {line} in data file {filepath} incorrectly formatted.")
     return data
 
 def createPlotImage(datapoints, x_label, y_label):  #creates a matplotlib line plot and saves it as an image, returns its filepath
@@ -86,7 +94,7 @@ def addChartToPlotSlide(slide, datapoints, x_label, y_label):
     os.remove(image_path)
 
 def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
-    slide_layout = presentation.slide_layouts[5] #"title only" layout to avoid adding an empty textbox by defaul
+    slide_layout = presentation.slide_layouts[5] #"title only" layout to avoid adding an empty textbox by default
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
     title.text = title_text
@@ -148,8 +156,8 @@ while True:
         print(f"The input file {missing_file} mentioned in your JSON source file was not found.")
         logging.error(f"Source file {missing_file} not found.")
 
-    except ValueError:
-        print("There was an issue, likely when interpreting the plot data. Make sure the data is in the correct format.")
+    except ValueError as e:
+        print("There was an issue with the format of some of the data you provided. Details: " +  str(e))
         logging.error("Value error encountered.")
     
 
