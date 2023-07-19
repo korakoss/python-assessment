@@ -5,7 +5,10 @@ from pptx.chart.data import XySeriesData, XyChartData
 from pptx.enum.chart import XL_CHART_TYPE
 import matplotlib.pyplot as plt
 import tempfile
-
+import logging 
+#TODO logging
+#TODO rest of exception handling
+#TODO commenting if needed
 
 def addTitleSlide(presentation, title_text, subtitle_text):
     slide_layout = presentation.slide_layouts[0]  
@@ -111,22 +114,26 @@ def makePresentation(json_data):
 
     return presentation
 
-#main part of program
-print("This program makes presentations from .json files.")
-print("You will be asked to provide the .json file to be summarized as a presentation.")
-print("Make sure that the .json file and other relevant files are in the program library.")
+#MAIN PART OF PROGRAM
+logging.basicConfig(filename='pptx_maker.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+print("This program makes presentations from JSON files.")
+print("You will be asked to provide the JSON file to be summarized as a presentation.")
+print("Make sure that the JSON file and other relevant files are in the program library.")
 
 while True:
     json_inp = input("Enter the filename of the JSON file (without the .json extension): ")
     filename = json_inp + ".json"
+    logging.info(f"Attempting to read '{filename}'.json")
     try:
         with open(filename, 'r') as file:
             presentation_data = json.load(file)
     except FileNotFoundError:
         print(f"File '{filename}' not found. Please enter a valid filename. \n")
+        logging.error("File '{filename}'.json not found.")
     
     except json.JSONDecodeError as e:
         print("There was an issue interpreting your JSON file. Make sure the file is valid.")
+        logging.error("JSON decoding error with '{filename}'.json.")
 
     try:
         json_pres = JSONPresentation(presentation_data)
@@ -135,9 +142,11 @@ while True:
         ppt_inp = input("Please enter a filename for the .pptx file to be created from your JSON file: ")
         output_filename = ppt_inp + ".pptx"
         presentation.save(output_filename)
-        input(f"Your file has been saved into the file {ouput_filename}. Enter anything to exit the program.")
+        logging.info("JSON input file '{filename}'.json succesfully converted, resulting presentation saved to '{output_filename}'.pptx.")
+        input(f"The presentation has been saved into the file {ouput_filename}.pptx. Enter anything to exit the program.")
         break
 
-    except FileNotFoundError:
-        print("Some source files were not found") # TODO: MAKE THIS BETTER. WHAT FILE EXACTLY?
+    except FileNotFoundError: # TODO: MAKE THIS BETTER. WHAT FILE EXACTLY?
+        print("Some source files were not found")
+        logging.error("Source files not found.")
 
