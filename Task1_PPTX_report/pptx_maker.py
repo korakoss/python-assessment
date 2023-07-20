@@ -11,7 +11,6 @@ import logging
 #TODO rest of exception handling
 #TODO test exception handling
 #TODO commenting if needed
-#TODO handle better when datafile not formatted correctly
 
 class ListSlideError(Exception):
     pass
@@ -42,14 +41,14 @@ def addListSlide(presentation, title_text, list_json): #TODO: raise errors if ne
     title.text = title_text
     content = slide.placeholders[1]
     content.text = ""
-    for item in list_json:
-        level = item["level"]
+    for list_item in list_json:
+        level = list_item["level"]
         if not level>0:
-            raise ListSlideError("Invalid 'level' attribute in JSON entry " + item)
-        text = item["text"]
-        p = content.text_frame.add_paragraph()
-        p.text = text
-        p.level = level - 1 
+            raise ListSlideError("Invalid 'level' attribute in JSON entry " + list_item)
+        text = list_item["text"]
+        paragraph = content.text_frame.add_paragraph()
+        paragraph.text = text
+        paragraph.level = level - 1 
 
         
 def addImgSlide(presentation, title_text, img_path):
@@ -61,16 +60,16 @@ def addImgSlide(presentation, title_text, img_path):
 
 def readDataFile(filepath):  #TODO better exception handling. #Reads the data for plot slides. I assumed that the data consists of pairs of numbers in each line, separated by semicolons, as in the example
     data = []
-    with open(filepath, 'r') as file:
-        for line in file:
+    with open(filepath, 'r') as data_file:
+        for line in data_file:
             line = line.strip()
             if line:
                 values = line.split(';')
                 if len(values) == 2:
                     try:
-                        value1 = float(values[0])
-                        value2 = float(values[1])
-                        data.append((value1, value2))
+                        x_value = float(values[0])
+                        y_value = float(values[1])
+                        data.append((x_value, y_value))
                     except ValueError:
                         raise ValueError(f"Warning: Problem with line {line} in data file {filepath}.")
                 else:
@@ -134,19 +133,19 @@ print("You will be asked to provide the JSON file to be summarized as a presenta
 print("Make sure that the JSON file and other relevant files are in the program library.")
 
 while True:
-    json_inp = input("Enter the filename of the JSON file (without the .json extension): ")
-    filename = json_inp + ".json"
-    logging.info(f"Attempting to read {filename}.")
+    filename_input = input("Enter the filename of the JSON file (without the .json extension): ")
+    json_filename = filename_input + ".json"
+    logging.info(f"Attempting to read {json_filename}.")
     try:
-        with open(filename, 'r') as file:
+        with open(json_filename, 'r') as file:
             presentation_data = json.load(file)
     except FileNotFoundError:
-        print(f"File {filename} not found. Please enter a valid filename. \n")
-        logging.error(f"File {filename} not found.")
+        print(f"File {json_filename} not found. Please enter a valid filename. \n")
+        logging.error(f"File {json_filename} not found.")
     
     except json.JSONDecodeError as e:
         print(f"There was an issue interpreting your JSON file. Make sure the file is valid.")
-        logging.error(f"JSON decoding error with {filename}.")
+        logging.error(f"JSON decoding error with {json_filename}.")
 
     try:
         presentation = makePresentation(presentation_data)        
@@ -164,8 +163,8 @@ while True:
     print("Your JSON file has been successfully converted.")
     
     try:
-        ppt_inp = input(f"Please enter a filename for the .pptx file to be created from your JSON file: ")
-        output_filename = ppt_inp + ".pptx"
+        ppt_filename_input = input(f"Please enter a filename for the .pptx file to be created from your JSON file: ")
+        output_filename = ppt_filename_input + ".pptx"
         presentation.save(output_filename)
         logging.info(f"JSON input file {filename} succesfully converted, resulting presentation saved to {output_filename}.")
         input(f"The presentation has been saved into the file {output_filename}. Enter anything to exit the program.")
