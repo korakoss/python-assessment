@@ -9,16 +9,17 @@ import os
 import logging
 
 #TODO rest of exception handling
+    #handle incorrect input for list slides
+    #handle other file errors for imgslides that filenotfound
+    #
 #TODO test exception handling
-#TODO commenting if needed
+#TODO commenting and docstrings
 
 class ListSlideError(Exception):
     pass
 
 
 def addTitleSlide(presentation, title_text, subtitle_text):
-    '''Each of the addSomeSlide functions require a presentation arg and some other args depending on slide type.
-    The fuctions add a slide to the presentation provided in the first argument. The contents of the slide are determined by the other args'''
     slide_layout = presentation.slide_layouts[0]  
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -34,7 +35,7 @@ def addTextSlide(presentation, title_text, text):
     title.text = title_text
     body.text = text
 
-def addListSlide(presentation, title_text, list_json): #TODO: raise errors if needed (eg wrong level numbers etc
+def addListSlide(presentation, title_text, list_json): 
     slide_layout = presentation.slide_layouts[1]
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -44,7 +45,7 @@ def addListSlide(presentation, title_text, list_json): #TODO: raise errors if ne
     for list_item in list_json:
         level = list_item["level"]
         if not level>0:
-            raise ListSlideError("Invalid 'level' attribute in JSON entry " + list_item)
+            raise ListSlideError("Invalid 'level' attribute in JSON entry " + list_item + "in the list slide titled " + title_text)
         text = list_item["text"]
         paragraph = content.text_frame.add_paragraph()
         paragraph.text = text
@@ -52,7 +53,7 @@ def addListSlide(presentation, title_text, list_json): #TODO: raise errors if ne
 
         
 def addImgSlide(presentation, title_text, img_path):
-    slide_layout = presentation.slide_layouts[5] #choosing a "title only" layout to not have a textbox on the slide  
+    slide_layout = presentation.slide_layouts[5] 
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
     title.text = title_text
@@ -93,7 +94,7 @@ def addChartToPlotSlide(slide, datapoints, x_label, y_label):
     os.remove(image_path)
 
 def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
-    slide_layout = presentation.slide_layouts[5] #"title only" layout to avoid adding an empty textbox by default
+    slide_layout = presentation.slide_layouts[5] 
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
     title.text = title_text
@@ -102,11 +103,19 @@ def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
 
 def makePresentation(json_data):
     presentation = Presentation()
-    for slide_data in json_data["presentation"]:
-        slide_type = slide_data["type"]
-        slide_title = slide_data["title"]
-        slide_content = slide_data["content"]
-
+    try:
+        json_root = json_data["presentation"]
+    except KeyError:
+        raise KeyError("Your JSON file has no top level object named 'presentation', despite it being required. Please check your JSON file.")
+    
+    for slide_data in json_root:
+        try:
+            slide_type = slide_data["type"]
+            slide_title = slide_data["title"]
+            slide_content = slide_data["content"]
+        except KeyError as c:
+            raise KeyError(f"In the JSON file, the slide object titled {slide_title} had no key {c}, despite it being required. Please check your JSON file.") 
+        
         if slide_type == "title":
             addTitleSlide(presentation, slide_title, slide_content)
         elif slide_type == "text":
@@ -119,48 +128,74 @@ def makePresentation(json_data):
             addImgSlide(presentation, slide_title, slide_content)
 
         elif slide_type == "plot":
-            slide_config = slide_data["configuration"]
-            x_label = slide_config["x-label"]
-            y_label = slide_config["y-label"]
+            try:
+                slide_config = slide_data["configuration"]
+                x_label = slide_config["x-label"]
+                y_label = slide_config["y-label"]
+            except:
+                raise KeyError(f"In the JSON file, the plot slide object titled {slide_title} had no key {c}, despite it being required. Please check your JSON file.")
             addPlotSlide(presentation, slide_title, slide_content, x_label, y_label)
+
+        else:
+            raise ValueError("Incorrect slide type attribute ({slide_type}) given for the slide titled {slide_title}")
 
     return presentation
 
-#MAIN PART OF PROGRAM
+
+
+'''
+MAIN LOOP OF THE PROGRAM
+This is the part of the code where user interaction, error handling and logging happens.
+The skeleton of this code is simple: asking the user for the JSON file, converting it using the makePresentation() function, then saving it into a .pptx file named by the user.
+If an error is encountered in the course of this, the user is notified about its details, then the program starts over from requesting the JSON file.
+Meanwhile, all important events are logged using the Python logging module and log entries are saved into the file pptx_maker.log.
+'''
+
 logging.basicConfig(filename='pptx_maker.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 print("This program makes presentations from JSON files.")
 print("You will be asked to provide the JSON file to be summarized as a presentation.")
 print("Make sure that the JSON file and other relevant files are in the program library.")
 
 while True:
-    filename_input = input("Enter the filename of the JSON file (without the .json extension): ")
+    filename_input = input(f"\n Enter the filename of the JSON file (without the .json extension) to be turned into a PPT: ")
     json_filename = filename_input + ".json"
     logging.info(f"Attempting to read {json_filename}.")
     try:
         with open(json_filename, 'r') as file:
             presentation_data = json.load(file)
     except FileNotFoundError:
-        print(f"File {json_filename} not found. Please enter a valid filename. \n")
+        print(f"File {json_filename} not found. Please enter a valid filename. Restarting with a new file input request.")
         logging.error(f"File {json_filename} not found.")
+        continue
     
     except json.JSONDecodeError as e:
-        print(f"There was an issue interpreting your JSON file. Make sure the file is valid.")
+        print(f"There was an issue interpreting your JSON file. Make sure the file is valid. Restarting with a new file input request.")
         logging.error(f"JSON decoding error with {json_filename}.")
+        continue
 
     try:
         presentation = makePresentation(presentation_data)        
 
     except FileNotFoundError as e:
         missing_file = e.filename
-        print(f"The input file {missing_file} mentioned in your JSON source file was not found.")
+        print(f"The input file {missing_file} mentioned in your JSON source file was not found. Restarting with a new file input request.")
         logging.error(f"Source file {missing_file} not found.")
+        continue
 
     except ValueError as e:
-        print("There was an issue with the format of some of the data you provided. Details: " +  str(e))
-        logging.error("Value error encountered.")
-    
+        print(f"In your JSON file, some keys were assigned invalid values. Please check the file. Error details: {str(e)} Restarting with a new file input request.")
+        logging.error(f"Value error encountered. Error message: {str(e)}")
+        continue
 
-    print("Your JSON file has been successfully converted.")
+    except KeyError as e:
+        print(f"Your JSON file were missing required data. Please the file. Error details: {str(e)} Restarting with a new file input request.")
+        logging.error(f"Key error encountered. Error message: {str(e)}")
+        continue
+
+    except PermissionError as e:
+        print(f"The program was denied permission to access file [e.filename}")
+
+    print("Your JSON file has been successfully converted to a presentation.")
     
     try:
         ppt_filename_input = input(f"Please enter a filename for the .pptx file to be created from your JSON file: ")
@@ -171,7 +206,8 @@ while True:
         break
     
     except PermissionError:
-        print(f"There was a permission error when trying to save the presentation. Make sure you have write access to the directory.")
+        print(f"There was a permission error when trying to save the presentation. Make sure you have write access to the directory. Restarting with a new file input request.")
         logging.error(f"Permission error when trying to save the presentation to {output_filename}.")
+        continue
 
 
