@@ -8,15 +8,9 @@ import tempfile
 import os
 import logging
 
-#TODO rest of exception handling
-    #handle incorrect input for list slides
-    #handle other file errors for imgslides that filenotfound
-    #
+#TODO AddImg exceptions, if needed?
 #TODO test exception handling
 #TODO commenting and docstrings
-
-class ListSlideError(Exception):
-    pass
 
 
 def addTitleSlide(presentation, title_text, subtitle_text):
@@ -45,7 +39,7 @@ def addListSlide(presentation, title_text, list_json):
     for list_item in list_json:
         level = list_item["level"]
         if not level>0:
-            raise ListSlideError("Invalid 'level' attribute in JSON entry " + list_item + "in the list slide titled " + title_text)
+            raise ValueError(f"Invalid 'level' attribute in JSON entry {list_item} in the list slide titled {title_text}")
         text = list_item["text"]
         paragraph = content.text_frame.add_paragraph()
         paragraph.text = text
