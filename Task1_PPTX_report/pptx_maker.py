@@ -249,8 +249,9 @@ def makePresentation(json_data):
         ValueError: If the slide type is not one of the valid types.
 
     Returns:
-        pptx.Presentation: The pptx Presentation object created based on the input JSON data.
+        pptx.Presentation: The presentation that was created based on the input JSON data.
     """
+    
     presentation = Presentation()
     try:
         json_root = json_data["presentation"]
@@ -292,78 +293,86 @@ def makePresentation(json_data):
 
 
 
-'''
-MAIN LOOP OF THE PROGRAM
-This is the part of the code where user interaction, error handling and logging happens.
-The skeleton of this code is simple: asking the user for the JSON file, converting it using the makePresentation() function, then saving it into a .pptx file named by the user.
-If an error is encountered in the course of this, the user is notified about its details, then the program starts over from requesting the JSON file.
-Meanwhile, all important events are logged using the Python logging module and log entries are saved into the file pptx_maker.log.
-'''
 
-logging.basicConfig(filename='pptx_maker.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-print("This program makes presentations from JSON files.")
-print("You will be asked to provide the JSON file to be summarized as a presentation.")
-print("Make sure that the JSON file and other relevant files are in the program library.")
+# This is the main section of the code
+# The user is first prompted for the name of a JSON file
+# The JSON file is read and the data is used to create a PowerPoint presentation
+# Then, the user is prompted again for the filename of the resulting pptx file. The program attempts to save the presentation under that filename
+# Important events during the execution of the program are logged to 'pptx_maker.log'
+# If there are errors at any stage of the process, they are logged, and the user is prompted to try again
 
-while True:
-    filename_input = input(f"\n Enter the filename of the JSON file (without the .json extension) to be turned into a PPT: ")
-    json_filename = filename_input + ".json"
-    logging.info(f"Attempting to read {json_filename}.")
-    try:
-        with open(json_filename, 'r') as file:
-            presentation_data = json.load(file)
-    except FileNotFoundError:
-        print(f"File {json_filename} not found. Please enter a valid filename. Restarting with a new file input request.")
-        logging.error(f"File {json_filename} not found.")
-        continue
+if __name__ == "__main__":
     
-    except json.JSONDecodeError as e:
-        print(f"There was an issue interpreting your JSON file. Make sure the file is valid then start the process over. Restarting with a new file input request.")
-        logging.error(f"JSON decoding error with {json_filename}.")
-        continue
+    # Basic configuration of the logging system
+    logging.basicConfig(filename='pptx_maker.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-    try:
-        presentation = makePresentation(presentation_data)        
+    # Inform the user about the program
+    print("This program makes presentations from JSON files.")
+    print("You will be asked to provide the JSON file to be summarized as a presentation.")
+    print("Make sure that the JSON file and other relevant files are in the program library.")
 
-    except FileNotFoundError as e:
-        missing_file = e.filename
-        print(f"The input file {missing_file} mentioned in your JSON source file was not found. Please check this then start the process over. Restarting with a new file input request.")
-        logging.error(f"Source file {missing_file} not found.")
-        continue
+    while True:
+        # Request the JSON file, then try to read it. If any error is encountered, the user is prompted to try again
+        filename_input = input(f"\n Enter the filename of the JSON file (without the .json extension) to be turned into a PPT: ")
+        json_filename = filename_input + ".json"
+        logging.info(f"Attempting to read {json_filename}.")
+        try:
+            with open(json_filename, 'r') as file:
+                presentation_data = json.load(file)
+        except FileNotFoundError:
+            print(f"File {json_filename} not found. Please enter a valid filename. Restarting with a new file input request.")
+            logging.error(f"File {json_filename} not found.")
+            continue
+        
+        except json.JSONDecodeError as e:
+            print(f"There was an issue interpreting your JSON file. Make sure the file is valid then start the process over. Restarting with a new file input request.")
+            logging.error(f"JSON decoding error with {json_filename}.")
+            continue
 
-    except ValueError as e:
-        print(f"In your JSON file, some keys were assigned invalid values. Please check the file then start the process over. Error details: {str(e)} Restarting with a new file input request.")
-        logging.error(f"Value error encountered. Error message: {str(e)}")
-        continue
+        # Try to convert the JSON data into a presentation. If any error is encountered, the user is informed about the error, then the program starts over from requesting the JSON file
+        try:
+            presentation = makePresentation(presentation_data)        
 
-    except KeyError as e:
-        print(f"Your JSON file were missing required data. Please check the file, then start the process over. Error details: {str(e)} Restarting with a new file input request.")
-        logging.error(f"Key error encountered. Error message: {str(e)}")
-        continue
+        except FileNotFoundError as e:
+            missing_file = e.filename
+            print(f"The input file {missing_file} mentioned in your JSON source file was not found. Please check this then start the process over. Restarting with a new file input request.")
+            logging.error(f"Source file {missing_file} not found.")
+            continue
 
-    except PermissionError as e:
-        print(f"The program was denied permission to access file {e.filename}. Please make sure this program has the appropriate permissions, then start the process over. Restarting with a new file input request.")
-        logging.error(f"Permission error encountered when trying to access {e.filename}")
-        continue
+        except ValueError as e:
+            print(f"In your JSON file, some keys were assigned invalid values. Please check the file then start the process over. Error details: {str(e)} Restarting with a new file input request.")
+            logging.error(f"Value error encountered. Error message: {str(e)}")
+            continue
 
-    except TypeError as e:
-        print(f"There were issues with some data you provided. Error details: {str(e)}. Please revise the mentioned data then start the process over. Restarting with a new file input request.")
-        logging.error(f"Key error encountered. Error message: {str(e)}")
-        continue
+        except KeyError as e:
+            print(f"Your JSON file were missing required data. Please check the file, then start the process over. Error details: {str(e)} Restarting with a new file input request.")
+            logging.error(f"Key error encountered. Error message: {str(e)}")
+            continue
 
-    print("Your JSON file has been successfully converted to a presentation.")
-    
-    try:
-        ppt_filename_input = input(f"Please enter a filename for the .pptx file to be created from your JSON file: ")
-        output_filename = ppt_filename_input + ".pptx"
-        presentation.save(output_filename)
-        logging.info(f"JSON input file {filename} succesfully converted, resulting presentation saved to {output_filename}.")
-        input(f"The presentation has been saved into the file {output_filename}. Enter anything to exit the program.")
-        break
-    
-    except PermissionError:
-        print(f"There was a permission error when trying to save the presentation. Please make sure this program has the appropriate permissions, then start the process over. Restarting with a new file input request.")
-        logging.error(f"Permission error when trying to save the presentation to {output_filename}.")
-        continue
+        except PermissionError as e:
+            print(f"The program was denied permission to access file {e.filename}. Please make sure this program has the appropriate permissions, then start the process over. Restarting with a new file input request.")
+            logging.error(f"Permission error encountered when trying to access {e.filename}")
+            continue
+
+        except TypeError as e:
+            print(f"There were issues with some data you provided. Error details: {str(e)}. Please revise the mentioned data then start the process over. Restarting with a new file input request.")
+            logging.error(f"Key error encountered. Error message: {str(e)}")
+            continue
+
+        print("Your JSON file has been successfully converted to a presentation.")
+
+        # The user is asked to provide a filename for the resulting pptx file. The program attempts to save it under that filename. If an error is encountered, the program starts over form requesting the JSON file
+        try:
+            ppt_filename_input = input(f"Please enter a filename for the .pptx file to be created from your JSON file: ")
+            output_filename = ppt_filename_input + ".pptx"
+            presentation.save(output_filename)
+            logging.info(f"JSON input file {filename} succesfully converted, resulting presentation saved to {output_filename}.")
+            input(f"The presentation has been saved into the file {output_filename}. Enter anything to exit the program.")
+            break
+        
+        except PermissionError:
+            print(f"There was a permission error when trying to save the presentation. Please make sure this program has the appropriate permissions, then start the process over. Restarting with a new file input request.")
+            logging.error(f"Permission error when trying to save the presentation to {output_filename}.")
+            continue
 
 
