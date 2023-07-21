@@ -7,13 +7,26 @@ import matplotlib.pyplot as plt
 import tempfile
 import os
 import logging
+from PIL import Image
 
-#TODO AddImg exceptions, if needed?
+
 #TODO test exception handling
 #TODO commenting and docstrings
 
 
 def addTitleSlide(presentation, title_text, subtitle_text):
+    """
+    Adds a title slide to a given presentation, with the specified title and subtitle.
+
+    Args:
+        presentation (Presentation): an instance of the pptx Presentation class to which the title slide will be added
+        title_text (str): the text to be used as the title of the slide
+        subtitle_text (str): the text to be used as the subtitle of the slide
+
+    Returns:
+        None
+    """
+    
     slide_layout = presentation.slide_layouts[0]  
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -22,6 +35,18 @@ def addTitleSlide(presentation, title_text, subtitle_text):
     subtitle.text = subtitle_text
 
 def addTextSlide(presentation, title_text, text):
+    """
+    Adds a text slide to a given presentation, with the specified title and body text.
+
+    Args:
+        presentation (Presentation): an instance of the pptx Presentation class to which the text slide will be added
+        title_text (str): the title text of the text slide
+        text (str): the body text to be included in the slide
+
+    Returns:
+        None
+    """
+    
     slide_layout = presentation.slide_layouts[1]
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -29,7 +54,24 @@ def addTextSlide(presentation, title_text, text):
     title.text = title_text
     body.text = text
 
-def addListSlide(presentation, title_text, list_json): 
+def addListSlide(presentation, title_text, list_json):
+    """
+    Adds a slide with a multi-level list to a given presentation, with a specified title and list structure.
+
+    Args:
+        presentation (pptx.Presentation): An instance of the pptx.Presentation class to add the list slide to.
+        title_text (str): The title text of the slide.
+        list_json (list of dict): A list of dictionaries where each dictionary represents a list item on the slide. Each dictionary has keys 'level' and 'text'.
+          The 'level' key should indicate the indentation level of the list item (integer values starting from 1), and 'text' key should 
+          contain the text content of the list item.
+
+    Raises:
+        ValueError: If the 'level' attribute in any list item is not greater than 0 or is not an integer.
+
+    Returns:
+        None
+    """
+    
     slide_layout = presentation.slide_layouts[1]
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -37,7 +79,7 @@ def addListSlide(presentation, title_text, list_json):
     content = slide.placeholders[1]
     content.text = ""
     for list_item in list_json:
-        level = list_item["level"]
+        level = int(list_item["level"])
         if not level>0:
             raise ValueError(f"Invalid 'level' attribute in JSON entry {list_item} in the list slide titled {title_text}")
         text = list_item["text"]
@@ -45,15 +87,62 @@ def addListSlide(presentation, title_text, list_json):
         paragraph.text = text
         paragraph.level = level - 1 
 
-        
+def isValidImage(filepath):
+    """
+    Checks if a given file path points to a valid image file or not. 
+
+    Args:
+        filepath (str): the file path of the file to check
+
+    Returns:
+        bool: True if the file is a valid image, False otherwise.
+    """
+    
+    try:
+        img = Image.open(filepath)
+        return True
+    except IOError:
+        return False
+
 def addImgSlide(presentation, title_text, img_path):
+    """
+    Adds an image slide to a given presentation, with the specified title and image content.
+
+    Args:
+        presentation (Presentation): an instance of the pptx Presentation class to which the image slide will be added
+        title_text (str): the title text of the image slide
+        img_path (str): the file path of the image file to be included on the slide
+        
+    Raises:
+        ValueError: If the img_path arg is not the file path of a valid image file.
+        
+    Returns:
+        None
+    """
+    
     slide_layout = presentation.slide_layouts[5] 
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
     title.text = title_text
+    if not isValidImage(img_path):
+        raise ValueError("The filepath {img_path} included in your JSON file does not point to a valid image file.")
+        
     slide.shapes.add_picture(img_path, Inches(1), Inches(2))
 
 def readDataFile(filepath):  #TODO better exception handling. #Reads the data for plot slides. I assumed that the data consists of pairs of numbers in each line, separated by semicolons, as in the example
+    """
+    Reads pairs of numbers from a data file, if the file is correctly formatted.
+
+    Parameters:
+        filepath (str): the file path of the data file 
+
+    Raises:
+        ValueError: If the file is not correctly formatted, ie. does not consists of lines with two floating point numbers in each line, separated by a semicolon.
+        
+    Returns:
+        list of tuples: The list of pairs of floating point numbers read from the file.
+    """
+    
     data = []
     with open(filepath, 'r') as data_file:
         for line in data_file:
@@ -72,6 +161,20 @@ def readDataFile(filepath):  #TODO better exception handling. #Reads the data fo
     return data
 
 def createPlotImage(datapoints, x_label, y_label):  #creates a matplotlib line plot and saves it as an image, returns its filepath
+    """
+    Creates a matplotlib line plot that fits on a set of data points, with specified labels on the axes of the plot. The plot is then saved to a tempfile.
+
+    Parameters:
+        datapoints (list of tuples): a list of 2-tuples of floating point numbers. The line plot will be fitted to these points.
+        x_label (str): the text of the label of the x-axis of the plot
+        y_label (str): the text of the label of the y-axis of the plot
+
+    Raises:
+        IOError: If the image file cannot be saved.
+        
+    Returns:
+        str: The file name of the tempfile that contains the image of the plot.
+    """
     plt.figure(figsize=(6,4))
     datapoints.sort()
     plt.plot([x for x, y in datapoints], [y for x, y in datapoints], marker='o') 
@@ -83,11 +186,46 @@ def createPlotImage(datapoints, x_label, y_label):  #creates a matplotlib line p
     return temp_file.name
 
 def addChartToPlotSlide(slide, datapoints, x_label, y_label):
+    """
+    Creates a matplotlib line plot and adds it as an image to a given slide. The plot is created using specified data points and axis labels.
+
+    Parameters:
+        slide (Slide): an instance of the pptx Slide class to which the plot image will be added
+        datapoints (list of tuples): a list of 2-tuples of floating point numbers. The line plot will be fitted to these points.
+        x_label (str): the text of the label of the x-axis of the plot
+        y_label (str): the text of the label of the y-axis of the plot
+
+    Raises:
+        IOError: If the tempfile cannot be opened (or saved by the createPlotImage() called by this function)
+        OSError: If the tempfile cannot be removed.
+        
+    Returns:
+        None
+    """
+    
     image_path = createPlotImage(datapoints, x_label, y_label)
     slide.shapes.add_picture(image_path, Inches(1), Inches(2))
     os.remove(image_path)
 
 def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
+    """
+    Adds a plot slide to a presentation using provided title, plot data, and axis labels.
+
+    Args:
+        presentation (pptx.Presentation): An instance of the pptx Presentation class to which the plot slide will be added.
+        title_text (str): The title text of the plot slide.
+        data_path (str): The path to the file that contains the data for the plot.
+        x_label (str): The label for the x-axis of the plot.
+        y_label (str): The label for the y-axis of the plot.
+
+    Raises:
+        IOError: If there are issues with reading the data file or creating the plot image.
+        OSError: If there are issues with removing the created plot image file.
+        
+    Returns:
+        None
+    """
+    
     slide_layout = presentation.slide_layouts[5] 
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
@@ -96,6 +234,23 @@ def addPlotSlide(presentation, title_text, data_path, x_label, y_label):
     addChartToPlotSlide(slide, datapoints, x_label, y_label)
 
 def makePresentation(json_data):
+    """
+    Creates a pptx Presentation based on a given JSON structure.
+
+    The JSON structure should be a dictionary with the key "presentation" that points to a list of dictionaries. Each dictionary in the list represents a slide in the presentation, and should contain at least three keys: "type", "title", and "content".
+    The "type" key determines the type of the slide (it can be "title", "text", "list", "picture", or "plot"). The "title" key specifies the title of the slide. The "content" key varies depending on the type of the slide, it can be text, a list of text items, a file path of an image, or a file path of a data file.
+    In the case of "plot" type slides, an additional key "configuration" is required in the dictionary of the slide. This key should point to another dictionary with the keys "x-label" and "y-label" to label the axes of the plot.
+
+    Args:
+        json_data (dict): The JSON structure that defines the presentation.
+
+    Raises:
+        KeyError: If the JSON structure is missing any required keys.
+        ValueError: If the slide type is not one of the valid types.
+
+    Returns:
+        pptx.Presentation: The pptx Presentation object created based on the input JSON data.
+    """
     presentation = Presentation()
     try:
         json_root = json_data["presentation"]
