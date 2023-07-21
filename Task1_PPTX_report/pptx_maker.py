@@ -163,7 +163,7 @@ while True:
         continue
     
     except json.JSONDecodeError as e:
-        print(f"There was an issue interpreting your JSON file. Make sure the file is valid. Restarting with a new file input request.")
+        print(f"There was an issue interpreting your JSON file. Make sure the file is valid then start the process over. Restarting with a new file input request.")
         logging.error(f"JSON decoding error with {json_filename}.")
         continue
 
@@ -172,22 +172,29 @@ while True:
 
     except FileNotFoundError as e:
         missing_file = e.filename
-        print(f"The input file {missing_file} mentioned in your JSON source file was not found. Restarting with a new file input request.")
+        print(f"The input file {missing_file} mentioned in your JSON source file was not found. Please check this then start the process over. Restarting with a new file input request.")
         logging.error(f"Source file {missing_file} not found.")
         continue
 
     except ValueError as e:
-        print(f"In your JSON file, some keys were assigned invalid values. Please check the file. Error details: {str(e)} Restarting with a new file input request.")
+        print(f"In your JSON file, some keys were assigned invalid values. Please check the file then start the process over. Error details: {str(e)} Restarting with a new file input request.")
         logging.error(f"Value error encountered. Error message: {str(e)}")
         continue
 
     except KeyError as e:
-        print(f"Your JSON file were missing required data. Please the file. Error details: {str(e)} Restarting with a new file input request.")
+        print(f"Your JSON file were missing required data. Please check the file, then start the process over. Error details: {str(e)} Restarting with a new file input request.")
         logging.error(f"Key error encountered. Error message: {str(e)}")
         continue
 
     except PermissionError as e:
-        print(f"The program was denied permission to access file [e.filename}")
+        print(f"The program was denied permission to access file {e.filename}. Please make sure this program has the appropriate permissions, then start the process over. Restarting with a new file input request.")
+        logging.error(f"Permission error encountered when trying to access {e.filename}")
+        continue
+
+    except TypeError as e:
+        print(f"There were issues with some data you provided. Error details: {str(e)}. Please revise the mentioned data then start the process over. Restarting with a new file input request.")
+        logging.error(f"Key error encountered. Error message: {str(e)}")
+        continue
 
     print("Your JSON file has been successfully converted to a presentation.")
     
@@ -200,7 +207,7 @@ while True:
         break
     
     except PermissionError:
-        print(f"There was a permission error when trying to save the presentation. Make sure you have write access to the directory. Restarting with a new file input request.")
+        print(f"There was a permission error when trying to save the presentation. Please make sure this program has the appropriate permissions, then start the process over. Restarting with a new file input request.")
         logging.error(f"Permission error when trying to save the presentation to {output_filename}.")
         continue
 
