@@ -1,17 +1,11 @@
 from pptx import Presentation
 from pptx.util import Inches, Pt
 import json
-from pptx.chart.data import XySeriesData, XyChartData
-from pptx.enum.chart import XL_CHART_TYPE
 import matplotlib.pyplot as plt
 import tempfile
 import os
 import logging
 from PIL import Image
-
-
-#TODO test exception handling
-#TODO commenting and docstrings
 
 
 def addTitleSlide(presentation, title_text, subtitle_text):
@@ -99,7 +93,8 @@ def isValidImage(filepath):
     """
     
     try:
-        img = Image.open(filepath)
+        with Image.open(filepath) as img:
+            img.verify()
         return True
     except IOError:
         return False
@@ -125,11 +120,11 @@ def addImgSlide(presentation, title_text, img_path):
     title = slide.shapes.title
     title.text = title_text
     if not isValidImage(img_path):
-        raise ValueError("The filepath {img_path} included in your JSON file does not point to a valid image file.")
+        raise ValueError(f"The filepath {img_path} included in your JSON file does not point to a valid image file.")
         
     slide.shapes.add_picture(img_path, Inches(1), Inches(2))
 
-def readDataFile(filepath):  #TODO better exception handling. #Reads the data for plot slides. I assumed that the data consists of pairs of numbers in each line, separated by semicolons, as in the example
+def readDataFile(filepath): 
     """
     Reads pairs of numbers from a data file, if the file is correctly formatted.
 
@@ -160,9 +155,11 @@ def readDataFile(filepath):  #TODO better exception handling. #Reads the data fo
                     raise ValueError(f"Line {line} in data file {filepath} incorrectly formatted.")
     return data
 
-def createPlotImage(datapoints, x_label, y_label):  #creates a matplotlib line plot and saves it as an image, returns its filepath
+def createPlotImage(datapoints, x_label, y_label):
     """
-    Creates a matplotlib line plot that fits on a set of data points, with specified labels on the axes of the plot. The plot is then saved to a tempfile.
+    Creates a matplotlib line plot that fits on a set of data points, with specified labels on the axes of the plot.
+    (Based on the description of the exercise and the provided example input and output, I assumed that plot data consists of pairs of floats, and the task is to draw a line plot that fits on these points.)
+    The plot is then saved to a tempfile.
 
     Parameters:
         datapoints (list of tuples): a list of 2-tuples of floating point numbers. The line plot will be fitted to these points.
@@ -183,6 +180,7 @@ def createPlotImage(datapoints, x_label, y_label):  #creates a matplotlib line p
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
     plt.savefig(temp_file.name)
     plt.close()
+    temp_file.close()
     return temp_file.name
 
 def addChartToPlotSlide(slide, datapoints, x_label, y_label):
@@ -264,7 +262,7 @@ def makePresentation(json_data):
             slide_title = slide_data["title"]
             slide_content = slide_data["content"]
         except KeyError as c:
-            raise KeyError(f"In the JSON file, the slide object titled {slide_title} had no key {c}, despite it being required. Please check your JSON file.") 
+            raise KeyError(f"In the JSON file, slide object {slide_data} had no key {str(c)}, despite it being required. Please check your JSON file.") 
         
         if slide_type == "title":
             addTitleSlide(presentation, slide_title, slide_content)
@@ -282,12 +280,12 @@ def makePresentation(json_data):
                 slide_config = slide_data["configuration"]
                 x_label = slide_config["x-label"]
                 y_label = slide_config["y-label"]
-            except:
-                raise KeyError(f"In the JSON file, the plot slide object titled {slide_title} had no key {c}, despite it being required. Please check your JSON file.")
+            except KeyError as c:
+                raise KeyError(f"In the JSON file, the plot slide object {slide_data} had no key {c}, despite it being required. Please check your JSON file.")
             addPlotSlide(presentation, slide_title, slide_content, x_label, y_label)
 
         else:
-            raise ValueError("Incorrect slide type attribute ({slide_type}) given for the slide titled {slide_title}")
+            raise ValueError(f"Incorrect slide type attribute ({slide_type}) given for the slide object {slide_data}")
 
     return presentation
 
@@ -301,7 +299,7 @@ def makePresentation(json_data):
 # Important events during the execution of the program are logged to 'pptx_maker.log'
 # If there are errors at any stage of the process, they are logged, and the user is prompted to try again
 
-if __name__ == "__main__":
+def main():
     
     # Basic configuration of the logging system
     logging.basicConfig(filename='pptx_maker.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -340,7 +338,7 @@ if __name__ == "__main__":
             continue
 
         except ValueError as e:
-            print(f"In your JSON file, some keys were assigned invalid values. Please check the file then start the process over. Error details: {str(e)} Restarting with a new file input request.")
+            print(f"There were issues with your JSON file or other data files. Please check the files then start the process over. Error details: {str(e)} Restarting with a new file input request.")
             logging.error(f"Value error encountered. Error message: {str(e)}")
             continue
 
@@ -366,7 +364,7 @@ if __name__ == "__main__":
             ppt_filename_input = input(f"Please enter a filename for the .pptx file to be created from your JSON file: ")
             output_filename = ppt_filename_input + ".pptx"
             presentation.save(output_filename)
-            logging.info(f"JSON input file {filename} succesfully converted, resulting presentation saved to {output_filename}.")
+            logging.info(f"JSON input file {json_filename} succesfully converted, resulting presentation saved to {output_filename}.")
             input(f"The presentation has been saved into the file {output_filename}. Enter anything to exit the program.")
             break
         
@@ -374,5 +372,8 @@ if __name__ == "__main__":
             print(f"There was a permission error when trying to save the presentation. Please make sure this program has the appropriate permissions, then start the process over. Restarting with a new file input request.")
             logging.error(f"Permission error when trying to save the presentation to {output_filename}.")
             continue
+
+if __name__ == "__main__":
+    main()
 
 
