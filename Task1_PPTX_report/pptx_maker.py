@@ -119,6 +119,7 @@ def addImgSlide(presentation, title_text, img_path):
     slide = presentation.slides.add_slide(slide_layout)
     title = slide.shapes.title
     title.text = title_text
+    
     if not isValidImage(img_path):
         raise ValueError(f"The filepath {img_path} included in your JSON file does not point to a valid image file.")
         
@@ -132,7 +133,7 @@ def readDataFile(filepath):
         filepath (str): the file path of the data file 
 
     Raises:
-        ValueError: If the file is not correctly formatted, ie. does not consists of lines with two floating point numbers in each line, separated by a semicolon.
+        ValueError: If the file is not correctly formatted, ie. does not consist of lines with two floating point numbers in each line, separated by a semicolon.
         
     Returns:
         list of tuples: The list of pairs of floating point numbers read from the file.
@@ -244,7 +245,7 @@ def makePresentation(json_data):
 
     Raises:
         KeyError: If the JSON structure is missing any required keys.
-        ValueError: If the slide type is not one of the valid types.
+        ValueError: If anything in the JSON structure is assigned an invalid value (e.g. slide types, list levels)
 
     Returns:
         pptx.Presentation: The presentation that was created based on the input JSON data.
@@ -359,7 +360,7 @@ def main():
 
         print("Your JSON file has been successfully converted to a presentation.")
 
-        # The user is asked to provide a filename for the resulting pptx file. The program attempts to save it under that filename. If an error is encountered, the program starts over form requesting the JSON file
+        # The user is asked to provide a filename for the resulting pptx file. The program attempts to save it under that filename. If an error is encountered, the program starts over from requesting the JSON file
         try:
             ppt_filename_input = input(f"Please enter a filename for the .pptx file to be created from your JSON file: ")
             output_filename = ppt_filename_input + ".pptx"

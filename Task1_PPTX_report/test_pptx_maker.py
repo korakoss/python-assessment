@@ -77,7 +77,7 @@ class TestPptxMaker(unittest.TestCase):
         self.assertTrue(readDataFile(temp_file_name))
         os.remove(temp_file_name)
 
-        # Next, we test if the function throws the appropriate exception if an entry in the data is not a float
+        # Next, we test if the function throws the appropriate exception if an entry in the data cannot be recognized as a float
         string_data = [
             (1.0, "text"),
             (3.0, 4.0),
@@ -146,6 +146,19 @@ class TestPptxMaker(unittest.TestCase):
     """
     
     def test_MakePresentation(self): # A visual test for the expected functioning of the makePresentation()
+        
+        # First we make sure that a data file with the right content exists
+        data = [
+        '1;2',
+        '3;4',
+        '5.6;6.7',
+        '8.9;9.10',
+        ]
+        with open('sample.dat', 'w') as f:
+            for line in data:
+                f.write(line + '\n')
+
+        # Now we test the makePresentation function
         with open("sample.json") as json_file:
             presentation_data = json.load(json_file)
         presentation = makePresentation(presentation_data)
